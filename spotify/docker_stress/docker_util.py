@@ -1,6 +1,7 @@
+import os
 import logging
 from socket import create_connection
-from time import sleep
+from time import time, sleep
 from urlparse import urlparse
 
 from docker_client import DockerClientError
@@ -49,22 +50,34 @@ def connectable(client, container_id, hostname, ports):
 
 
 def destroy_containers(client, nametag):
-    while True:
+    timeout = time() + 60 * 60
+    try:
+        if os.fork():
+            return
+    except OSError, e:
+        log.debug('failed to fork: %s', e)
+        return
+
+    while time() < timeout:
         sleep(1)
-        containers = client.list_containers(needle=nametag)
+        containers = client.list_containers(needle=nametag, _all=True)
         if not containers:
             break
+        containers = client.list_containers(needle=nametag)
         for container in containers:
             try:
                 client.kill(container)
             except Exception, e:
                 log.debug('kill failed: %s', e)
+        containers = client.list_all_exited(needle=nametag)
         for container in containers:
             try:
                 client.destroy(container)
             except Exception, e:
                 log.debug('destroy failed: %s', e)
-
+        sleep(99)
+    if time() > timeout:
+        log.debug('Reached timeout for container destroy')
 
 def endpoint_address(endpoint):
     if '://' not in endpoint:
