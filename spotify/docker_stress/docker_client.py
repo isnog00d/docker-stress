@@ -97,11 +97,20 @@ class CliDockerClient(object):
         log.debug('destroy %s', container_id)
         self.cli_check('rm', container_id)
 
-    def list_containers(self, needle=''):
+    def list_containers(self, needle='', _all=False):
         if not needle:
             return self.cli_check('ps', '-q').splitlines()
         else:
-            lines = self.cli_check('ps').splitlines()[1:]
+            if _all:
+                lines = self.cli_check('ps', '-a').splitlines()[1:]
+            else:
+                lines = self.cli_check('ps').splitlines()[1:]
             matches = [word for line in lines for word in line.split() if needle in word]
             log.debug('list_containers: needle=%s, matches=%s', needle, matches)
             return matches
+
+    def list_all_exited(self, needle):
+	lines = self.cli_check('ps', '-a').splitlines()[1:]
+	lines = [line for line in lines if 'Exited' in line]
+	matches = [word for line in lines for word in line.split() if needle in word]
+	return matches
