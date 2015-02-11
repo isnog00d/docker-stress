@@ -138,7 +138,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print "Terminating workers and cleaning up..."
+        print "Terminating workers and cleaning up...(in background)"
         kill_workers()
         destroy_containers(client, nametag)
 
